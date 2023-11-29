@@ -6,7 +6,7 @@ navbarPage("Visualizing AMR",
     fluidPage(
       HTML('
         <div class="container">
-          <h2>Antimicrobial Resistance (?)</h2>
+          <h2>Antimicrobial Resistance in New York</h2>
           <hr/>
           <h4><b>Authors</b></h4>
           <p>Anthony Dip, Branden Phan, Michael Lam</p>
@@ -26,7 +26,7 @@ navbarPage("Visualizing AMR",
             <li><b>What antimicrobial bacteria is most common in canines and felines within New York?</b></li>
           </ul>
           <br/>
-          <p>As the large dataset utilized within this application is solely based on infections observed in New York state, this tool is directed towards veterinarians based in New York.</p>
+          <p>As the large dataset utilized within this application is solely based on infections observed in canines and felines within New York state, this tool is directed towards veterinarians based in New York.</p>
           <br/>
           <h4><b>Literature Review</b></h4>
         </div>
@@ -34,7 +34,20 @@ navbarPage("Visualizing AMR",
     )
   ),
   tabPanel("Canine vs Feline",
-           
+    sidebarLayout(
+      sidebarPanel(
+        HTML('
+          <p><b>Do antimicrobial resistance patterns differ between canine and feline bladder infections within New York?</b></p>
+          <hr/>
+        '),
+        selectInput("cvf_method", "Method:", c("Support Vector Machine" = "svm", "Logistic Regression" = "lr")),
+        br(),
+        uiOutput("cvf_method_output")
+      ),
+      mainPanel(
+        uiOutput("cvf_conditional_output")
+      )
+    )
   ),
   tabPanel("Urban vs Rural",
            
