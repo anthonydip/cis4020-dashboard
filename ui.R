@@ -50,7 +50,20 @@ navbarPage("Visualizing AMR",
     )
   ),
   tabPanel("Urban vs Rural",
-           
+    sidebarLayout(
+      sidebarPanel(
+        HTML('
+           <p><b>Do the types of antibiotic-resistant bacteria commonly found in canines and felines differ between urban and rural regions?</b></p>
+           <hr/>     
+        '),
+        selectInput("region_method", "Method:", c("Logistic Regression" = "lr", "K-Means Clustering" = "kc")),
+        br(),
+        uiOutput("region_method_output")
+      ),
+      mainPanel(
+        uiOutput("region_conditional_output")
+      )
+    )
   ),
   tabPanel("Common Bacteria",
         
