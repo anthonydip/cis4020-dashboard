@@ -45,7 +45,8 @@ navbarPage("Visualizing AMR",
         uiOutput("cvf_method_output")
       ),
       mainPanel(
-        uiOutput("cvf_conditional_output")
+        textOutput("loading_indicator"),
+        uiOutput("cvf_conditional_output"),
       )
     )
   ),
@@ -68,5 +69,4 @@ navbarPage("Visualizing AMR",
   tabPanel("Common Bacteria",
         
   )
-
 )
