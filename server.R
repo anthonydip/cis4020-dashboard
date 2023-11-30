@@ -38,6 +38,7 @@ function(input, output, session) {
   output$cvf_conditional_output <- renderUI({
     selected_method <- input$cvf_method
     selected_option <- input$cvf_svm_radio
+  
     
     if (selected_method == "svm") {
       if (selected_option == "avail") {
@@ -93,7 +94,7 @@ function(input, output, session) {
     print(paste("Selected option:", selected_option))
   })
   
-  output$cvf_conditional_output <- renderUI({
+  output$region_conditional_output <- renderUI({
     selected_method <- input$region_method
     selected_option <- input$region_svm_radio
     
