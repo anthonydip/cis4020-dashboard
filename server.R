@@ -4,17 +4,18 @@ library(ggplot2)
 library(dplyr)
 library(tidyr)
 library(e1071)
+library(reshape2)
 library(caret)
 library(Rtsne) # For t-SNE visualization
 library(arrow)
 library(readr)
 library(caret)
 
-# Run Canine vs Feline SVM before application loads
+# Run Canine vs Feline SVM
 run_cvf_svm <- function() {
-  print("Running SVM...")
+  print("Running Canine vs Feline SVM...")
   
-  data<-read.csv("svm_output_filter.csv")
+  data<-read.csv("cvf_output_filter.csv")
   
   # Factor species (CANINE OR FELINE)
   data$species <- as.factor(data$species)
@@ -65,7 +66,7 @@ run_cvf_svm <- function() {
   tsne_df$species <- svm.testing.data$species
   tsne_df$predicted_species <- svm.testing.data$predicted_species
 
-  print("SVM completed!")
+  print("Canine vs Feline SVM completed!")
   
   results <- list(
     confusion_matrix = conf_matrix,
@@ -192,9 +193,80 @@ run_region_lr <- function() {
   return(result)
 }
 
+# Run Canine vs Feline Logistic Regression
+run_cvf_lr <- function() {
+  print("Running Canine vs Feline LR...")
+  data<-read.csv("cvf_output_filter.csv")
+  
+  columns_to_exclude <- c("id", "state", "order_month", "county", "zip_3_level", "order_year", "panel_name", "assay_name", "remark", "site", "source", "org_standard", "age_year")
+  
+  data <- data[, !colnames(data) %in% columns_to_exclude]
+  
+  drugs_to_exclude <- 33:100
+  
+  data <- data[, -drugs_to_exclude]
+  
+  # Transform susceptibility test results to values instead of characters
+  value_mapping <- c("S" = 5, "R" = 4, "I" = 3, "TF" = 2, "N/I" = 1, "None" = 0)
+  
+  columns_to_transform <- c(2:32)
+  
+  for (col in columns_to_transform) {
+    data[[col]] <- ifelse(data[[col]] %in% names(value_mapping),
+                          value_mapping[data[[col]]],
+                          data[[col]])
+  }
+  
+  data[columns_to_transform] <- lapply(data[columns_to_transform], as.numeric)
+  
+  drug_columns <- colnames(data)[2:32]
+  
+  # Factor species (CANINE OR FELINE)
+  data$species <- as.factor(data$species)
+  
+  # Factor drug columns
+  data[, drug_columns] <- lapply(data[, drug_columns], factor)
+  
+  #str(data$species)
+  
+  #predictor_formula <- as.formula(paste("species ~", paste(drug_columns, collapse = " + ")))
+  
+  #logistic_model_combined <- glm(predictor_formula, data = training_data, family = "binomial")
+  
+  # use stepwise regression to explore "better" models
+  #step.aic<-step(logistic_model_combined)
+  
+  final_model <- glm(species~R1 + W1 + Z1 + S1 + H3 + X1, data = data, family = "binomial")
+  summary(final_model)
+  
+  # determine predictions based on the final model
+  pred<-predict(final_model, type="response")
+  
+  # View the distribution of predictions
+  #hist(pred)
+  
+  # Convert predicted probabilities to class predictions (assigning to the most probable class)
+  predicted_classes <- ifelse(pred > 0.5, "FELINE", "CANINE")  # Threshold 0.5: if > 0.5, predict "FELINE", otherwise "CANINE"
+  
+  # Extract actual species from the dataset
+  actual_species <- as.character(data$species)
+  
+  # Generate the confusion matrix
+  conf_matrix <- table(predicted_classes, actual_species)
+  
+  print("Canine vs Feline LR Completed!")
+  
+  results <- list(
+    predictions = pred,
+    confusion_matrix = conf_matrix
+  )
+  
+  return(results)
+}
+
 function(input, output, session) {
   # CANINE VS FELINE CSV FILE LOADING
-  cvf_svm_data <- read.csv("svm_urine.csv")
+  cvf_svm_data <- read.csv("cvf_urine.csv")
   
   # URBAN VS RURAL PARQUET FILE LOADING
   region_lr_data <- read_parquet("amr_data.parquet")
@@ -209,18 +281,27 @@ function(input, output, session) {
   cvf_svm_confusion_matrix <- reactiveVal(NULL)
   cvf_svm_tsne_data<- reactiveVal(NULL)
   
+
   # Urban vs Rural Logistic Regression confusion matrix
   region_lr_confusion_matrix <- reactiveVal(NULL)
   
+  # Canine vs Feline LR prediction and confusion matrix results
+  cvf_lr_confusion_matrix <- reactiveVal(NULL)
+  cvf_lr_pred <- reactiveVal(NULL)
+  
   # When the applications starts, execute any preload functions
   observe({
-    results <- run_cvf_svm()
-    cvf_svm_confusion_matrix(results$confusion_matrix)
-    cvf_svm_tsne_data(results$tsne_data)
+    cvf_svm_results <- run_cvf_svm()
+    cvf_svm_confusion_matrix(cvf_svm_results$confusion_matrix)
+    cvf_svm_tsne_data(cvf_svm_results$tsne_data)
     
     # Urban vs Rural logistic regression
     region_lr_confusion_matrix(run_region_lr())
     
+    cvf_lr_results <- run_cvf_lr()
+    cvf_lr_confusion_matrix(cvf_lr_results$confusion_matrix)
+    cvf_lr_pred(cvf_lr_results$predictions)
+
     # Set preloading_done to TRUE when finished all preloading
     preloading_done(TRUE)
   })
@@ -255,27 +336,27 @@ function(input, output, session) {
       )
     } else {
       return (
-        HTML('
-          <p><b>Logistic Regression</b></p>   
-        ')
+        div(
+          HTML('
+            <p><b>Logistic Regression</b></p>
+            <p>A statistical model used to observe the probability of a certain outcome, based on given multiple input variables.</p>
+            <p>As logistic regression models are among one of the most commonly used algorithms in AMR prediction, we can use it in our case to model a binary outcome; whether a species is canine or feline based on the inputted susceptibility tests.</p>
+          '),
+          hr(),
+          radioButtons("cvf_lr_radio", NULL, c("Available Data" = "avail", "Confusion Matrix" = "conf", "Histogram" = "hist"))
+        )
       )
     }
-  })
-  
-  # Canine vs Feline SVM radio button
-  observeEvent(input$cvf_svm_radio, {
-    selected_option <- input$cvf_svm_radio
-    
-    print(paste("Selected option:", selected_option))
   })
   
   # Canine vs Feline main panel output
   output$cvf_conditional_output <- renderUI({
     selected_method <- input$cvf_method
-    selected_option <- input$cvf_svm_radio
+    selected_svm_option <- input$cvf_svm_radio
+    selected_lr_option <- input$cvf_lr_radio
     
     if (selected_method == "svm") {
-      if (selected_option == "avail") {
+      if (selected_svm_option == "avail") {
         return (
           list(
             HTML('
@@ -304,7 +385,7 @@ function(input, output, session) {
             dataTableOutput("cvf_svm_data_table")
           )
         )
-      } else if (selected_option == "conf") {
+      } else if (selected_svm_option == "conf") {
         return (
           list(
             HTML('
@@ -356,15 +437,130 @@ function(input, output, session) {
         )
       }
     } else {
-      # When the method is not "svm", do not render any textOutput
-      NULL
+      # When the method is "Logistic Regression" for Canine vs Feline
+      if (selected_lr_option == "avail") {
+        return (
+          list(
+            HTML('
+              <h4><b>Available Data</b></h4>
+              <hr/>
+              <p>The original dataset consisted of 111,969 infections identified in canines and felines.</p>
+              <p>In order to answer the research question, the dataset was filtered down to include only those infections identified from urine samples:</p>
+              <ul>
+                <li>Total cases: <b>8459</b></li>
+                <li>Canine cases: <b>5836</b></li>
+                <li>Feline cases: <b>2623</b></li>
+              </ul>
+              <p>Susceptibility test results for the various drugs were also converted to a numerical value before using the Logistic Regression:</p>
+              <ul>
+                <li>S (Susceptible) = 5</li>
+                <li>R (Resistant) = 4</li>
+                <li>I (Intermediate) = 3</li>
+                <li>TF (To Follow) = 2</li>
+                <li>N/I (Not interpretable) = 1</li>
+                <li>None (Empty) = 0</li>
+              </ul>
+              <p>After filtering of the original dataset, this is a small example of how the available data for the SVM looks like</p>
+              <p>Note: The drugs only include R1 - T2, as any drug after those have no test results in any cases</p>
+            '),
+            dataTableOutput("cvf_svm_data_table")
+          )
+        )
+      } else if (selected_lr_option == "conf") {
+        conf_matrix <- cvf_lr_confusion_matrix()
+        
+        return (
+          list(
+            HTML('
+              <h4><b>Confusion Matrix and Statistics</b></h4>
+              <hr/>
+            '),
+            verbatimTextOutput("cvf_lr_confusion_matrix_output"),
+            HTML('
+              <p>Shown above is the generated confusion matrix from the <b>final</b> logistic regression model.</p>
+              <p>Note: Stepwise regression was used to explore "better" models, and was concluded that the combination of R1, W1, Z1, S1, H3, X1 provided the "best" results in terms of balance and predictions. Therefore, the final logistic regression model only used these drugs in order to determine the probabilities of the outcome species.</p>
+              <p>Here are a few calculated statistics to help us interpret what confusion matrix means:</p>
+              <ul>
+                <li>5825 cases were correctly predicted as CANINE (True Positives)</li>
+                <li>13 cases were correctly predicted as FELINE (True Negatives)</li>
+                <li>2610 cases were incorrectly predicted as CANINE when they were FELINE (False Positives)</li>
+                <li>11 cases were incorrectly predicated as FELINE when they were CANINE (False Negatives)</li>
+              </ul>
+              <p><b>Accuracy: 69.02%: </b>The ratio of correct predictions of both CANINE and FELINE over the total number of observations</p>
+              <p><b>Sensitivity: 99.81%: </b>The ratio of correct CANINE predictions over the total number of CANINE in the data</p>
+              <p><b>Specificity: 00.50%: </b>The ratio of correct FELINE predictions over the total number of FELINE in the data</p>
+              <br/>
+              <p><b>Confusion Matrix and Statistics Conclusion</b></p>
+              <p>Showing similar results to the SVM model, the results from logistic regression show a very high sensitivity and very low specificity. Again, indicating it is able to correctly classify almost all canine cases, but incorrectly classifies almost all feline cases.</p>
+              <p>With a decent accuracy of approximately 69.02%, this however does not indicate a good logistic regression model, as it is not good at classifying feline species. </p>
+              <p>The overall results are inconclusive, as many limitations with the model may exist. Limitations such as the large amount of canine infections compared to feline cases and the fact that we are only utilizing susceptibility test results may not be enough to distinctly classify the species.</p>
+            ')
+          )
+        )
+      } else {
+        return (
+          list(
+            HTML('
+              <h4><b>Histogram of Predictions</b></h4>
+              <hr/>
+            '),
+            plotOutput("cvf_lr_hist_plot"),
+            HTML('
+              <p>The histogram shown above shows the probabilities of predictions from the logistic regression model.</p>
+              <p>On the x-axis, it shows a range of probabilities from 0.0 to 1.0.</p>
+              <p>On the y-axis, it shows a range of frequency from 0 to 5000. This indicates the number of occurences of that probability during the predictions.</p>
+              <p>Here is a closer look on the probabilities of predictions for the first few observations in the dataset:</p>
+            '),
+            verbatimTextOutput("cvf_lr_pred_head_output"),
+            HTML('
+              <p>The first number <b>(0.2947158)</b> represents the predicted probability for the first observation in the data.</p>
+              <p>The second number <b>(0.2817432)</b> represents the predicted probability for the first observation in the data.</p>
+              <p>And so on for subsequent observations up to the total number of urine infections within the filtered dataset.</p>
+              <p>Each probability indicates the confidence of the logistic regression model that the current observation is classified as FELINE.</p>
+              <p>Based on the way the model is setup, a probability closer to 0.0 means it would be classified as a CANINE, while a probability closer to 1.0 means it would be classified as FELNIE</p>
+              <br/>
+              <p><b>Histogram Conclusion</b></p>
+              <p>Based on the histogram above and observed probabilities, it is evident that the most frequent probability is within the range of 0.36, showing around 5000 occurrences. We can see that a significantly large amount of the probabilities occur under the 0.4 range, showing a large bias towards CANINE classification.</p>
+              <p>From the results of the model, it appears that based on solely the susceptibility tests, the probability that our response variable (species in this case) takes on the value CANINE is more prevalent.</p>
+              <p>In conclusion, this could indicate slight differences between the antimicrobial patterns between canines and felines, perhaps canines showing more distinct patterns. However, this could also be due to the existence of more canine infections within the dataset.</p>
+            ')
+          )
+        )
+      }
     }
   })
+  
+  #The first number (0.2947158) represents the predicted probability for the first observation in your dataset.
+  #The second number (0.2817432) represents the predicted probability for the second observation.
+  #And so on for the subsequent observations (3, 4, 5, ...).
+  #These probabilities indicate the model's estimated likelihood or confidence that each observation belongs to the category "FELINE" based on the predictor variables included in the logistic regression model.
   
   # Render the Canine vs Feline SVM confusion matrix
   output$cvf_svm_confusion_matrix_output <- renderPrint({
     # Get the confusion matrix from reactive value
     confusion_matrix <- cvf_svm_confusion_matrix()
+    if (!is.null(confusion_matrix)) {
+      print(confusion_matrix)
+    } else {
+      "Confusion matrix not available yet."
+    }
+  })
+  
+  # Render the text for the Canine vs Feline LR histogram predictions
+  output$cvf_lr_pred_head_output <- renderPrint({
+    # Get the predictions
+    predictions <- cvf_lr_pred()
+    if (!is.null(predictions)) {
+      print(head(predictions))
+    } else {
+      "Histogram not available yet."
+    }
+  })
+  
+  # Render the Canine vs Feline LR confusion matrix
+  output$cvf_lr_confusion_matrix_output <- renderPrint({
+    # Get the confusion matrix from reactive value
+    confusion_matrix <- cvf_lr_confusion_matrix()
     if (!is.null(confusion_matrix)) {
       print(confusion_matrix)
     } else {
@@ -382,6 +578,13 @@ function(input, output, session) {
       scale_color_manual(values = c("CANINE" = "blue", "FELINE" = "red")) +
       scale_shape_manual(values = c("CANINE" = 1, "FELINE" = 2)) +
       theme_minimal()
+  })
+  
+  # Render the Canine vs Feline LR histogram
+  output$cvf_lr_hist_plot <- renderPlot({
+    predictions <- cvf_lr_pred()
+    
+    hist(predictions)
   })
   
   # Render the SVM available data table within the conditional output
