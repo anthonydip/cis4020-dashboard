@@ -702,4 +702,172 @@ function(input, output, session) {
     pageLength = 5
     
   ))
+  
+  
+  # Most Common Bacteria
+  output$cb_method_output <- renderUI({
+    return (
+      div(
+        HTML('
+        <p><b>Descriptive Statistics</b></p>
+        <p>A branch of statistics that includes the collection and analysis of data.</p>
+        <p>One of the most common and powerful statistical methods for summarizing and analyzing large datasets, offering various approaches to answering the question.
+        <p>Descriptive statistics includes measures of central tendency, measures of dispersion, frequency distributions, etc.</p>
+        <p>For this question, utilizing frequency distributions can be used to accurately analyze the data. This approach provides powerful insights into the bacteria most commonly identified. Furthermore, by splitting the data by variables such as species, frequency distributions can be analyzed on each subset, therefore identifying common bacteria associated with those variables.
+        '),
+        hr(),
+        radioButtons("cb_ds_radio", NULL, c("All" = "All", "Canine" = "Canine", "Feline" = "Feline")),
+      )
+    )
+  })
+  
+  # Common Bacteria Descriptive Statistics Radio
+  output$cb_conditional_output <- renderUI({
+    selected_option <- input$cb_ds_radio
+    
+    if (selected_option == "All") {
+      return (
+        div(
+          plotOutput("all_species_plot", width = "100%", height = "600px"),
+          uiOutput("cb_ds_description")
+        )
+      )
+    } else if (selected_option == "Canine") {
+      return (
+        div(
+          plotOutput("canine_plot", width = "100%", height = "600px"),
+          uiOutput("cb_ds_description")
+        )
+      )
+    } else if (selected_option == "Feline") {
+      return (
+        div(
+          plotOutput("feline_plot", width = "100%", height = "600px"),
+          uiOutput("cb_ds_description")
+        )
+      )
+    }
+    else {
+      return (
+        p("")
+      )
+    }
+  })
+  
+  # Common Bacteria Canine + Feline Plot
+  output$all_species_plot <- renderPlot({
+    data <- data.frame(
+      Bacteria = c("E COLI", "STAPHYLOCOCCUS PSEUDINTERMEDIUS", "ENTEROCOCCUS FAECALIS", "PROTEUS MIRABILIS", "STAPHYLOCOCCUS SCHLEIFERI", "PSEUDOMONAS AERUGINOSA", "BETAHAEMOLYTIC STREPTOCOCCUS", "KLEBSIELLA SP", "STAPHYLOCOCCUS FELIS", "DROP", "CORYNEBACTERIUM SP", "STAPHYLOCOCCUS AUREUS", "ENTEROCOCCUS FAECIUM", "ENTEROCOCCUS SP", "KLEBSIELLA PNEUMONIAE"),
+      Freq = c(29142, 20586, 10581, 9674, 5935, 5633, 2473, 2202, 1841, 1717, 1677, 1594, 1587, 983, 917)
+    )
+    
+    data$Bacteria <- factor(data$Bacteria, levels=unique(data$Bacteria))
+    data_sorted <- data[order(-data$Freq),]
+    data_sorted$Bacteria <- factor(data_sorted$Bacteria, levels=data_sorted$Bacteria)
+    
+    ggplot(data_sorted, aes(x=Bacteria, y=Freq, fill=Bacteria)) +
+      geom_bar(stat="identity") +
+      theme(axis.text.x=element_text(angle=45, hjust=1)) +
+      labs(title="Canine and Feline Bacterial Species Frequency", x="Bacterial Species", y="Frequency")
+  })
+  
+  # Common Bacteria Canine Plot
+  output$canine_plot <- renderPlot({
+    data <- data.frame(
+      Bacteria = org_standard_column <- c("E COLI", "STAPHYLOCOCCUS PSEUDINTERMEDIUS", "PROTEUS MIRABILIS", "ENTEROCOCCUS FAECALIS", "STAPHYLOCOCCUS SCHLEIFERI", "PSEUDOMONAS AERUGINOSA", "BETAHAEMOLYTIC STREPTOCOCCUS", "KLEBSIELLA SP", "CORYNEBACTERIUM SP", "DROP", "ENTEROCOCCUS FAECIUM", "STAPHYLOCOCCUS AUREUS", "ENTEROCOCCUS SP", "KLEBSIELLA PNEUMONIAE", "BACILLUS SP"),
+      Freq <- c(21859, 20013, 9263, 7372, 5762, 4985, 2337, 1957, 1559, 1513, 1125, 886, 824, 787, 712)
+    )
+    
+    data$Bacteria <- factor(data$Bacteria, levels=unique(data$Bacteria))
+    data_sorted <- data[order(-data$Freq),]
+    data_sorted$Bacteria <- factor(data_sorted$Bacteria, levels=data_sorted$Bacteria)
+    
+    ggplot(data_sorted, aes(x=Bacteria, y=Freq, fill=Bacteria)) +
+      geom_bar(stat="identity") +
+      theme(axis.text.x=element_text(angle=45, hjust=1)) +
+      labs(title="Canine Bacterial Species Frequency", x="Bacterial Species", y="Frequency")
+  })
+  
+  # Common Bacteria Feline Plot
+  output$feline_plot <- renderPlot({
+    data <- data.frame(
+      Bacteria = org_standard_column <- c("E COLI", "ENTEROCOCCUS FAECALIS", "STAPHYLOCOCCUS FELIS", "STAPHYLOCOCCUS AUREUS", "PSEUDOMONAS AERUGINOSA", "STAPHYLOCOCCUS PSEUDINTERMEDIUS", "ENTEROCOCCUS FAECIUM", "PROTEUS MIRABILIS", "KLEBSIELLA SP", "PASTEURELLA SP", "DROP", "STAPHYLOCOCCUS SCHLEIFERI", "ENTEROCOCCUS SP", "ENTEROBACTER CLOACAE", "STAPHYLOCOCCUS EPIDERMIDIS"),
+      Freq <- c(7283, 3209, 1805, 708, 648, 573, 462, 411, 245, 227, 204, 173, 159, 158, 155)
+    )
+    
+    data$Bacteria <- factor(data$Bacteria, levels=unique(data$Bacteria))
+    data_sorted <- data[order(-data$Freq),]
+    data_sorted$Bacteria <- factor(data_sorted$Bacteria, levels=data_sorted$Bacteria)
+    
+    ggplot(data_sorted, aes(x=Bacteria, y=Freq, fill=Bacteria)) +
+      geom_bar(stat="identity") +
+      theme(axis.text.x=element_text(angle=45, hjust=1)) +
+      labs(title="Feline Bacterial Species Frequency", x="Bacterial Species", y="Frequency")
+  })
+  
+  # Common Bacteria Description
+  output$cb_ds_description <- renderUI({
+    return(
+      HTML('
+           <div style="margin-left:5px">
+             <br/>
+             <b>General Description</b>
+             <p>
+                The bar graphs represent the commonly identified bacteria for the different species (all/canine/feline) based on the data.
+                <br/>
+                To change the graphs, please choose one of the options (all/canine/feline) to render the respective graph.
+             </p>
+             <br/>
+             <b>Interpretation</b>
+             <p>
+                Interpretation of the bar graph is quite simple. Each bar denotes a different species of identified bacteria while the height of the bar corresponds to the occurrence of that species 
+                <br/>
+                in the data. The graph is ordered from the most occurring bacteria to the least occurring, allowing for easy visualization of the most common bacteria among the canine and feline species.
+                <br/>
+                Each bar has a corresponding colour, which can be matched with the legend on the right for the identified species of bacteria.
+                <br/>
+                For example, if we interpret the bar graph for both canine and feline represented by "All", we can see that E.Coli is the most prevalent bacteria, followed by Staphylococcus P.
+             </p>
+             <br/>
+             <b>Conclusion and Results</b>
+             <p>
+                <b>Note:</b> It is important to note that only the 15 most frequent bacteria were displayed as the remaining bacteria were less relevant and we can still reach a 
+                <br/>
+                clear conclusion for the question.
+                <br/>
+                <br/>
+                Bacteria that is more common can be exposed to higher amounts of antibiotics as a result of being treated more often. Thus, it is important to not only focus on 
+                <br/>
+                antimicrobial resistances, but analyze the most common bacteria. Understanding the most common bacteria can aid researchers and scientists in predicting bacteria that are 
+                <br/>
+                more susceptible to developing resistances.
+                <br/>
+                <br/>
+                Reflecting on the results from the bar graph, it is apparent for both species that E.Coli is the most common bacteria, followed by Staphylococcus P., then Enterococcus F.
+                <br/>
+                As mentioned, bacteria that is more common can be exposed to higher amounts of antibiotics, increasing the likelihood of those bacteria developing antimicrobial resistances.
+                <br/>
+                Since E.Coli is highly prevalent according to the data, it signifies the greater chances of developing antimicrobial resistances, especially if treatment is sought after.
+                <br/>
+                This concept can be applied to the different commonly identified bacteria, providing researchers and scientist insights into which bacteria is more likely to develop antimicrobial resistances.
+                <br/>
+                Furthermore, looking at the individual species, they seem to have differing common bacteria. Although E.Coli is the most common bacteria for both canine and feline,
+                <br/>
+                their following most common species are different. Canines second most common bacteria is Staphylococcus P., while felines second most common bacteria is Enterococcus F. 
+                <br/>
+                This suggests the animal species has an influence on the most common types of bacteria caught.
+                <br/>
+                <br/>
+                Descriptive statistics proved to be a strong approach when addressing the underlying question of the most common bacteria. The method accurately summarized the data into
+                <br/>
+                an easily interpretable form to answer the question. The bar graphs were created using frequency methods from the data, as such the most commonly identified bacteria in the 
+                <br/>
+                dataset will be towards the left.
+                <br/>
+                <br/>
+             </p>
+           </div>
+           ')
+    )
+  })
 }

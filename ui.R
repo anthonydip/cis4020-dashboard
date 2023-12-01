@@ -29,8 +29,8 @@ navbarPage("Visualizing AMR",
           </ul>
           <br/>
           <p>As the large dataset utilized within this application is solely based on infections observed in canines and felines within New York state, this tool is directed towards veterinarians based in New York.</p>
-          <br/>
-          <h4><b>Literature Review</b></h4>
+          </br>
+          <h4><b>Note: The computation for the tabs take 1-2 minutes to load, so no information will be visible until it finishes</b></h4>
         </div>
       ')
     )
@@ -69,6 +69,17 @@ navbarPage("Visualizing AMR",
     )
   ),
   tabPanel("Common Bacteria",
-        
+    sidebarLayout(
+      sidebarPanel(
+        HTML('
+          <p><b>What antimicrobial bacteria is most common in canines and felines within New York?</b></p>
+          <hr/>
+        '),
+        uiOutput("cb_method_output")
+      ),
+      mainPanel(
+        uiOutput("cb_conditional_output")
+      )
+    )
   )
 )
