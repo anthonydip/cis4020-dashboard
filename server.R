@@ -607,12 +607,6 @@ function(input, output, session) {
           radioButtons("region_lr_radio", NULL, c("Available Data" = "avail", "Confusion Matrix" = "conf")),
         )
       )
-    } else {
-      return (
-        HTML('
-          <p><b>K-Means Clustering</b></p>   
-        ')
-      )
     }
   })
   
