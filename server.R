@@ -5,6 +5,7 @@ library(dplyr)
 library(tidyr)
 library(e1071)
 library(reshape2)
+library(rsample)
 library(caret)
 library(Rtsne) # For t-SNE visualization
 library(arrow)
@@ -529,12 +530,7 @@ function(input, output, session) {
       }
     }
   })
-  
-  #The first number (0.2947158) represents the predicted probability for the first observation in your dataset.
-  #The second number (0.2817432) represents the predicted probability for the second observation.
-  #And so on for the subsequent observations (3, 4, 5, ...).
-  #These probabilities indicate the model's estimated likelihood or confidence that each observation belongs to the category "FELINE" based on the predictor variables included in the logistic regression model.
-  
+
   # Render the Canine vs Feline SVM confusion matrix
   output$cvf_svm_confusion_matrix_output <- renderPrint({
     # Get the confusion matrix from reactive value

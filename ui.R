@@ -1,5 +1,6 @@
 library(shiny)
 library(markdown)
+library(rsconnect)
 
 navbarPage("Visualizing AMR",
   tabPanel("Home",
@@ -10,6 +11,7 @@ navbarPage("Visualizing AMR",
           <hr/>
           <h4><b>Authors</b></h4>
           <p>Anthony Dip, Branden Phan, Michael Lam</p>
+          <p>Github: <a href="https://github.com/anthonydip/cis4020-dashboard">https://github.com/anthonydip/cis4020-dashboard</a></p>
           <br/>
           <h4><b>The Problem</b></h4>
           <p>As the implications of antimicrobial resistance found within bacteria are on the rise, it becomes increasingly difficult and expensive to correctly treat various infections.</p>
